@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pinky 💕 Live Chat</title>
+<style>
+body {
+  background: #ffd6e7;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+.chat-container {
+  width: 95%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+}
+.chat-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+}
+.message {
+  padding: 10px 14px;
+  margin: 6px 0;
+  border-radius: 12px;
+  line-height: 1.4;
+  max-width: 85%;
+}
+.ai { background: #f2f2f2; align-self: flex-start; }
+.user { background: #ff7eb9; color: white; align-self: flex-end; }
+.input-area {
+  display: flex;
+  border-top: 1px solid #eee;
+}
+input {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  font-size: 15px;
+  outline: none;
+}
+button {
+  background: #ff69b4;
+  border: none;
+  color: white;
+  padding: 0 18px;
+  font-size: 16px;
+  cursor: pointer;
+}
+button:active { opacity: 0.8; }
+.voice-btn {
+  background: #ffb6c1;
+  border: none;
+  padding: 0 15px;
+  font-size: 18px;
+}
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div id="chat-box" class="chat-box">
+    <div class="message ai">Hi! I'm Pinky 💕 Ready to chat with you 😄</div>
+  </div>
+  <div class="input-area">
+    <input id="user-input" type="text" placeholder="Type your message...">
+    <button class="voice-btn" onclick="startListening()">🎤</button>
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+async function sendMessage() {
+  const input = document.getElementById("user-input");
+  const msg = input.value.trim();
+  if (!msg) return;
+  appendMessage(msg, "user");
+  input.value = "";
+  appendMessage("Typing...", "ai", true);
+  const reply = await getReply(msg);
+  document.querySelector(".message.ai:last-child").remove();
+  appendMessage(reply, "ai");
+  speak(reply);
+}
+
+function appendMessage(text, sender, isTemp=false) {
+  const box = document.getElementById("chat-box");
+  const msgDiv = document.createElement("div");
+  msgDiv.className = `message ${sender}`;
+  msgDiv.textContent = text;
+  box.appendChild(msgDiv);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function getReply(message) {
+  try {
+    const res = await fetch("http://localhost:5000/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
+    const data = await res.json();
+    return data.reply;
+  } catch (e) {
+    console.error(e);
+    return "Network issue aa gaya 😔";
+  }
+}
+
+// 🔊 Voice Output
+function speak(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "hi-IN";
+  utter.pitch = 1.1;
+  utter.rate = 0.95;
+  speechSynthesis.speak(utter);
+}
+
+// 🎙️ Voice Input
+function startListening() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return alert("Your browser doesn’t support voice input 😢");
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "hi-IN";
+  recognition.start();
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    document.getElementById("user-input").value = text;
+    sendMessage();
+  };
+  recognition.onerror = (e) => {
+    console.error(e);
+    alert("Voice input error!");
+  };
+}
+</script>
+
+</body>
+</html>
